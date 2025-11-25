@@ -1,0 +1,123 @@
+{
+  "name": "Email to Quick Note",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "unread": true
+        },
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "email-trigger",
+      "name": "Check Email",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "credentials": {
+        "imap": {
+          "id": "YOUR_IMAP_CREDENTIALS_ID",
+          "name": "Your Email IMAP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.subject }}",
+              "operation": "contains",
+              "value2": "[note]"
+            }
+          ]
+        }
+      },
+      "id": "filter-notes",
+      "name": "Filter Note Emails",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"content\": $json.text || $json.html.replace(/<[^>]*>/g, ''), \"source\": \"email\", \"metadata\": { \"subject\": $json.subject, \"from\": $json.from, \"date\": $json.date } } }}"
+      },
+      "id": "prepare-payload",
+      "name": "Prepare Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-APP-URL.ondigitalocean.app/api/quick-notes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "send-to-noted",
+      "name": "Send to Noted!",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Check Email": {
+      "main": [
+        [
+          {
+            "node": "Filter Note Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Note Emails": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload": {
+      "main": [
+        [
+          {
+            "node": "Send to Noted!",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
