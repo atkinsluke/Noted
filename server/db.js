@@ -1,5 +1,8 @@
 import pg from 'pg';
 
+// Allow self-signed certificates from DO managed database
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const { Pool } = pg;
 
 // Use DATABASE_URL env var in production, or construct from individual vars
