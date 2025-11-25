@@ -1,66 +1,43 @@
-import initSqlJs from 'sql.js';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import fs from 'fs';
+import pg from 'pg';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { Pool } = pg;
 
-const dbPath = join(__dirname, 'data', 'notes.db');
+// Use DATABASE_URL env var in production, or construct from individual vars
+const connectionString = process.env.DATABASE_URL ||
+  `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}?sslmode=require`;
 
-let db = null;
-let SQL = null;
+let pool = null;
 
 export async function getDb() {
-  if (db) return db;
+  if (pool) return pool;
 
-  SQL = await initSqlJs();
+  pool = new Pool({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
 
-  if (fs.existsSync(dbPath)) {
-    const buffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(buffer);
-  } else {
-    // If no DB exists, run setup first
-    throw new Error('Database not found. Run "npm run setup" first.');
-  }
+  // Test connection
+  const client = await pool.connect();
+  client.release();
 
-  return db;
-}
-
-export function saveDb() {
-  if (db) {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
-  }
+  return pool;
 }
 
 // Helper to run a query and return all results as objects
-export function all(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const results = [];
-  while (stmt.step()) {
-    results.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return results;
+export async function all(sql, params = []) {
+  const result = await pool.query(sql, params);
+  return result.rows;
 }
 
 // Helper to run a query and return first result as object
-export function get(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  let result = null;
-  if (stmt.step()) {
-    result = stmt.getAsObject();
-  }
-  stmt.free();
-  return result;
+export async function get(sql, params = []) {
+  const result = await pool.query(sql, params);
+  return result.rows[0] || null;
 }
 
 // Helper to run a statement (INSERT, UPDATE, DELETE)
-export function run(sql, params = []) {
-  db.run(sql, params);
-  saveDb(); // Auto-save after mutations
+export async function run(sql, params = []) {
+  await pool.query(sql, params);
 }

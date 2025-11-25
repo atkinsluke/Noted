@@ -32,9 +32,6 @@ COPY server ./server
 # Copy built frontend from builder
 COPY --from=builder /app/client/dist ./client/dist
 
-# Create data directory for SQLite
-RUN mkdir -p server/data
-
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
@@ -42,5 +39,5 @@ ENV PORT=8080
 # Expose port
 EXPOSE 8080
 
-# Initialize database and start server
-CMD ["sh", "-c", "node server/setup-db.js && node server/index.js"]
+# Start server (database schema is set up via DATABASE_URL env var)
+CMD ["node", "server/index.js"]
