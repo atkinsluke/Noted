@@ -39,5 +39,5 @@ ENV PORT=8080
 # Expose port
 EXPOSE 8080
 
-# Start server (database schema is set up via DATABASE_URL env var)
-CMD ["node", "server/index.js"]
+# Run setup (idempotent) then start server
+CMD ["sh", "-c", "node server/setup-db.js && node server/index.js"]
