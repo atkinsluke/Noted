@@ -8,7 +8,9 @@ const connectionString = process.env.DATABASE_URL ||
 async function setup() {
   const pool = new Pool({
     connectionString,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
 
   const client = await pool.connect();
