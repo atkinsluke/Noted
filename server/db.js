@@ -13,9 +13,7 @@ export async function getDb() {
 
   pool = new Pool({
     connectionString,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
   });
 
   // Test connection
